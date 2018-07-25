@@ -1,12 +1,12 @@
+#!/bin/env python2.7
 #coding=utf-8
-#Auther：xwjr.com
 from aliyunsdkcore import client
-from aliyunsdkrds.request.v20140815 import DescribeResourceUsageRequest,DescribeDBInstancePerformanceRequest
+from aliyunsdkrds.request.v20140815 import DescribeResourceUsageRequest,DescribeDBInstancePerformanceRequest,DescribeDBInstanceAttributeRequest
 import json,sys,datetime
 
-ID = 'ID'
-Secret = 'Secret'
-RegionId = 'cn-shenzhen'
+ID = 'xxxxx'
+Secret = 'xxxxxxx'
+RegionId = 'cn-hangzhou'
 
 clt = client.AcsClient(ID,Secret,RegionId)
 
@@ -27,9 +27,10 @@ def GetResourceUsage(DBInstanceId,Key):
     ResourceUsage.set_DBInstanceId(DBInstanceId)
     ResourceUsageInfo = clt.do_action_with_exception(ResourceUsage)
     #print ResourceUsageInfo
-    Info = (json.loads(ResourceUsageInfo))[Key]
+    Info = (json.loads(ResourceUsageInfo))[Key]/1024/1024/1024
     print Info
 
+#参阅https://help.aliyun.com/document_detail/26280.html?spm=a2c4g.11186623.6.902.4cy2JQ
 def GetPerformance(DBInstanceId,MasterKey,IndexNum,StartTime,EndTime):
     Performance = DescribeDBInstancePerformanceRequest.DescribeDBInstancePerformanceRequest()
     Performance.set_accept_format('json')
@@ -43,9 +44,20 @@ def GetPerformance(DBInstanceId,MasterKey,IndexNum,StartTime,EndTime):
     Value = Info['PerformanceKeys']['PerformanceKey'][0]['Values']['PerformanceValue'][-1]['Value']
     print str(Value).split('&')[IndexNum]
 
+#参阅https://help.aliyun.com/document_detail/26231.html?spm=a2c4g.11186623.4.1.lRegBe
+def GetAttribute(DBInstanceId, Key):
+    Attribute = DescribeDBInstanceAttributeRequest.DescribeDBInstanceAttributeRequest()
+    Attribute.set_DBInstanceId(DBInstanceId)
+    AttributeInfo = clt.do_action_with_exception(Attribute)
+    Info = json.loads(AttributeInfo)
+    print Info['Items']['DBInstanceAttribute'][0][Key]
+
 
 if (Type == "Disk"):
     GetResourceUsage(DBInstanceId, Key)
+
+elif (Type == "Attribute"):
+    GetAttribute(DBInstanceId, Key)
 
 elif (Type == "Performance"):
 
@@ -311,4 +323,9 @@ elif (Type == "Performance"):
     elif (Key == "other_size"):
         MasterKey = "MySQL_DetailedSpaceUsage"
         IndexNum = 4
+        GetPerformance(DBInstanceId, MasterKey, IndexNum, StartTime, EndTime)
+
+    elif (Key == "MySQL_CPS"):
+        MasterKey = "MySQL_CPS"
+        IndexNum = 0
         GetPerformance(DBInstanceId, MasterKey, IndexNum, StartTime, EndTime)
